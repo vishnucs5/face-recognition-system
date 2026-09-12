@@ -1,12 +1,12 @@
-# Face Recognition Identification System
-### Biometric Enrollment, Multi-Face Identification & Configurable Unknown Rejection
+# Facial Recognition Biometric Console
+### Biometric Enrollment, Multi-Face Identification, Live Webcam Ingestion & Configurable Unknown Rejection
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-5.0.0-green.svg)](https://opencv.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Streamlit](https://img.shields.io/badge/UI-Streamlit-red.svg)](https://streamlit.io/)
+[![Streamlit](https://img.shields.io/badge/UI-Skeuomorphic%20Console-orange.svg)](https://streamlit.io/)
 
-A complete, production-grade biometric Face Recognition System built in Python. The system provides an end-to-end computer vision pipeline for **biometric enrollment**, **multi-face identification**, and **strict unknown rejection**.
+A complete, production-grade biometric Face Recognition System built in Python. The system provides an end-to-end computer vision pipeline for **biometric enrollment (via file upload or live WebRTC camera)**, **multi-face identification**, and **strict unknown rejection**.
 
 ---
 
@@ -114,9 +114,9 @@ flowchart TD
 | **Embedding Vector** | $128$-dimensional float32 | Strictly $L_2$-normalized ($\|e\|_2 = 1.0$) |
 | **Similarity Metric** | Cosine Similarity | $\cos(q, e) = \frac{q \cdot e}{\|q\| \|e\|} = q \cdot e$ |
 | **Database** | SQLite 3 | WAL mode, foreign keys with cascading delete |
-| **Web Interface** | Streamlit | Responsive dashboard with 5 interactive tabs |
+| **Web Interface** | Streamlit | Skeuomorphic hardware console, Home Portal, and dual-source enrollment (upload + webcam) |
 | **Evaluation** | scikit-learn, pandas, matplotlib | FAR, FRR, TAR, TRR, Accuracy, Threshold sweeps |
-| **Test Framework** | pytest | 22 unit, integration, and end-to-end test cases |
+| **Test Framework** | pytest | 23 unit, integration, and end-to-end test cases |
 
 ---
 
