@@ -93,8 +93,8 @@ def main():
         # Navigation Rocker Switches
         nav_items = [
             ("home", "Home Portal", "🏠"),
-            ("identify", "Identify Face", "🎯"),
-            ("enroll", "Enroll Person", "➕"),
+            ("identify", "Identify Face (Webcam & Upload)", "🎯"),
+            ("enroll", "Enroll Person (Webcam & Upload)", "➕"),
             ("people", "People Directory", "👥"),
             ("dashboard", "Operations Deck", "📊"),
             ("evaluation", "Evaluation Suite", "📈"),

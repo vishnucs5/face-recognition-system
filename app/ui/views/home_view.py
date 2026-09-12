@@ -126,17 +126,17 @@ def render_home_view(
                         </span>
                     </div>
                     <div style="font-size: 1.15rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.35rem;">
-                        🎯 Identify Faces &amp; Reject Unknowns
+                        🎯 Identify Faces // Live Webcam &amp; Upload
                     </div>
                     <div style="font-size: 0.8125rem; color: #94a3b8; line-height: 1.5;">
-                        Acquire query optical images for multi-face detection, landmark alignment, gallery matching, 
-                        and strict unknown imposter rejection with full verification trace.
+                        Acquire query optical images via real-time live webcam scanner, browser snapshot camera, 
+                        or file upload for deep embedding matching and unknown imposter rejection.
                     </div>
                 </div>
             </div>
             """
         )
-        if st.button("⚡ LAUNCH IDENTIFY TERMINAL", type="primary", key="home_btn_identify", use_container_width=True):
+        if st.button("📷 ⚡ LAUNCH WEBCAM IDENTIFIER", type="primary", key="home_btn_identify", use_container_width=True):
             st.session_state["nav"] = "identify"
             st.rerun()
 
