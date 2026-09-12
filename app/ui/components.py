@@ -365,8 +365,46 @@ def bgr_to_base64_img(img_bgr: np.ndarray) -> str:
     return f"data:image/jpeg;base64,{b64_str}"
 
 
-def render_enrollment_source_selector(active_source: str) -> None:
-    """Render physical console enrollment source rocker switch plate."""
+def render_workflow_mode_badge(mode: str = "identification") -> None:
+    """Render high-visibility workflow banner stating whether biometric profiles will be saved or transiently queried."""
+    is_enroll = mode.lower() in ("enrollment", "registration", "enroll")
+    if is_enroll:
+        border_color = "#10b981"
+        glow_color = "rgba(16, 185, 129, 0.15)"
+        text_color = "#10b981"
+        led = "green"
+        mode_tag = "REGISTRATION MODE"
+        desc = "Captured reference will be added to the database."
+        sub = "BIOMETRIC ENROLLMENT ACTIVE"
+    else:
+        border_color = "#f59e0b"
+        glow_color = "rgba(245, 158, 11, 0.15)"
+        text_color = "#f59e0b"
+        led = "amber"
+        mode_tag = "QUERY MODE"
+        desc = "No biometric profile will be added."
+        sub = "TRANSIENT RECOGNITION AUDIT"
+
+    html = f"""
+    <div style="background: #080b11; border: 1px solid {border_color}; border-left: 5px solid {border_color}; border-radius: 6px; padding: 0.65rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 15px {glow_color}; font-family: 'JetBrains Mono', monospace;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span class="hw-led {led}"></span>
+            <div>
+                <span style="font-size: 0.8125rem; font-weight: 800; color: {text_color}; letter-spacing: 0.05em;">{mode_tag}:</span>
+                <span style="font-size: 0.8125rem; color: #f8fafc; margin-left: 0.4rem;">{desc}</span>
+            </div>
+        </div>
+        <span style="font-size: 0.6875rem; color: #64748b; font-weight: 700; letter-spacing: 0.08em;">{sub}</span>
+    </div>
+    """
+    render_html(html)
+
+
+def render_capture_source_selector(
+    active_source: str = "upload",
+    workflow_title: str = "ACQUISITION SOURCE SELECTOR",
+) -> None:
+    """Render physical console optical source rocker switch plate."""
     is_upload = active_source == "upload"
     is_webcam = active_source == "webcam"
 
@@ -376,7 +414,7 @@ def render_enrollment_source_selector(active_source: str) -> None:
     html = f"""
     <div class="source-rocker-bay">
         <div class="source-rocker-title">
-            <span>ENROLLMENT SOURCE SELECTOR</span>
+            <span>{workflow_title.upper()}</span>
             <span>CH: OPTICAL-INPUT</span>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
@@ -396,6 +434,11 @@ def render_enrollment_source_selector(active_source: str) -> None:
     </div>
     """
     render_html(html)
+
+
+def render_enrollment_source_selector(active_source: str) -> None:
+    """Render physical console enrollment source rocker switch plate."""
+    render_capture_source_selector(active_source, "ENROLLMENT SOURCE SELECTOR")
 
 
 def render_webcam_monitor_bezel(

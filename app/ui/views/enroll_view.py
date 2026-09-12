@@ -16,6 +16,7 @@ from app.ui.components import (
     render_hardware_header,
     render_hardware_stepper,
     render_webcam_monitor_bezel,
+    render_workflow_mode_badge,
 )
 from app.ui.theme import ICONS, THEME, render_html
 from app.utils.image_utils import (
@@ -37,6 +38,9 @@ def render_enroll_view(
         model_status="READY",
         device="CPU",
     )
+
+    # Explicit Workflow Banner (Registration vs Query distinction)
+    render_workflow_mode_badge("enrollment")
 
     # Initialize session state tracking
     if "enroll_source_mode" not in st.session_state:

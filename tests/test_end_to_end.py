@@ -137,3 +137,59 @@ def test_threshold_modification_behavior(clean_db):
     out2 = service.identify(dummy_img, threshold=0.75)
     assert out2.results[0].accepted is False
     assert out2.results[0].status == "UNKNOWN"
+
+
+def test_identification_transient_query_and_deliberate_reference(clean_db):
+    """Test that identification is purely transient (no automatic saving) and supports deliberate reference addition."""
+    e_alice = np.zeros(128, dtype=np.float32)
+    e_alice[0] = 1.0
+    pid = clean_db.add_person("Alice")
+    clean_db.add_embedding(pid, e_alice, source="upload")
+
+    initial_embeddings = clean_db.get_embeddings_for_person(pid)
+    assert len(initial_embeddings) == 1
+
+    query_vec = np.zeros(128, dtype=np.float32)
+    query_vec[0] = 0.92
+    query_vec[1] = np.sqrt(1 - 0.92**2)
+
+    embedder = ControlledEmbedder(vector_map={1: query_vec})
+    f1 = FaceDetection((10, 10, 60, 60), 0.99, np.zeros((5, 2)), np.zeros(15))
+    setattr(f1, "raw_id", 1)
+
+    service = FaceRecognitionService(
+        db_manager=clean_db,
+        detector=MockDetectorMulti([f1]),
+        embedder=embedder,
+        matcher=FaceMatcher(match_threshold=0.50),
+    )
+
+    dummy_img = np.zeros((100, 100, 3), dtype=np.uint8)
+
+    # 1. Webcam query identification
+    out = service.identify(dummy_img, threshold=0.50, source="webcam")
+    assert out.source == "webcam"
+    assert out.num_matches == 1
+    res = out.results[0]
+    assert res.accepted is True
+    assert res.identity == "Alice"
+    assert res.embedding is not None
+    assert len(res.embedding) == 128
+
+    # Invariant: Query mode NEVER automatically enrolls/modifies database
+    after_query_embeddings = clean_db.get_embeddings_for_person(pid)
+    assert len(after_query_embeddings) == 1
+
+    # 2. Deliberate post-match reference addition (Section 18)
+    clean_db.add_embedding(
+        person_id=res.person_id,
+        embedding=res.embedding,
+        source_image_name="deliberate_webcam_ref.jpg",
+        source="webcam",
+    )
+    final_embeddings = clean_db.get_embeddings_for_person(pid)
+    assert len(final_embeddings) == 2
+    sources = [e["source"] for e in final_embeddings]
+    assert "upload" in sources
+    assert "webcam" in sources
+

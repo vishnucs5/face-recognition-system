@@ -12,12 +12,14 @@ from app.recognition.recognizer import FaceRecognitionService
 from app.ui.components import (
     render_analysis_trace,
     render_camera_permission_notice,
+    render_capture_source_selector,
     render_decision_panel,
     render_empty_state,
     render_face_alignment_guide,
     render_hardware_header,
     render_similarity_gauge,
     render_webcam_monitor_bezel,
+    render_workflow_mode_badge,
 )
 from app.ui.theme import ICONS, THEME, render_html
 from app.utils.image_utils import bgr_to_rgb, crop_face, load_image
@@ -36,6 +38,9 @@ def render_identify_view(rec_service: FaceRecognitionService):
         threshold=curr_thresh,
     )
 
+    # Explicit Workflow Banner (Transient Query Mode)
+    render_workflow_mode_badge("identification")
+
     # Initialize session state tracking
     if "identify_source_mode" not in st.session_state:
         st.session_state["identify_source_mode"] = "upload"
@@ -52,15 +57,7 @@ def render_identify_view(rec_service: FaceRecognitionService):
     top_col1, top_col2 = st.columns([3, 2], vertical_alignment="center")
 
     with top_col1:
-        st.markdown(
-            f"""
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 700; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
-                <span>ACQUISITION SOURCE SELECTOR</span>
-                <span>CH: SCAN-INPUT</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        render_capture_source_selector(active_source, "ACQUISITION SOURCE SELECTOR")
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button(
@@ -170,7 +167,7 @@ def render_identify_view(rec_service: FaceRecognitionService):
     # =========================================================================
     t0 = time.perf_counter()
     with st.spinner("Executing face localization, 5-point alignment, and gallery comparison..."):
-        output = rec_service.identify(query_bytes, threshold=curr_thresh)
+        output = rec_service.identify(query_bytes, threshold=curr_thresh, source=active_source)
     latency_ms = (time.perf_counter() - t0) * 1000.0
 
     st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
@@ -293,6 +290,36 @@ def render_identify_view(rec_service: FaceRecognitionService):
                                 }
                             )
                         st.dataframe(pd.DataFrame(cand_data), hide_index=True, use_container_width=True)
+
+                # Deliberate Reference Addition (Section 18: Non-automatic, explicit confirmation)
+                if is_match and res.person_id is not None and res.embedding is not None:
+                    with st.expander(f"➕ ENROLLMENT EXTENSION: ADD AS REFERENCE [Face #{res.face_index + 1}]", expanded=False):
+                        st.markdown(
+                            f"""
+                            <div style="font-size: 0.75rem; color: #94a3b8; font-family: 'Inter', sans-serif; margin-bottom: 0.5rem; line-height: 1.4;">
+                                This captured query frame matched <strong>{res.identity}</strong> with cosine similarity <strong>{res.similarity:.4f}</strong>.
+                                You may deliberately register this vector as an additional reference in the gallery.
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        btn_key = f"btn_add_ref_{res.face_index}_{res.person_id}"
+                        if st.button(
+                            f"CONFIRM & ADD REFERENCE TO {res.identity.upper()}",
+                            key=btn_key,
+                            type="secondary",
+                            use_container_width=True,
+                        ):
+                            try:
+                                rec_service.db.add_embedding(
+                                    person_id=res.person_id,
+                                    embedding=res.embedding,
+                                    source_image_name=f"ref_{active_source}_{int(time.time())}.jpg",
+                                    source=active_source,
+                                )
+                                st.success(f"✓ Biometric reference vector successfully added to {res.identity}'s profile!")
+                            except Exception as e:
+                                st.error(f"Failed to add reference: {e}")
 
                 st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
 

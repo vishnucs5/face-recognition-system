@@ -13,6 +13,7 @@ from app.utils.validation import (
     validate_person_name,
     QualityAssessment,
 )
+from app.utils.input_types import RecognitionInput
 
 __all__ = [
     "load_image",
@@ -24,4 +25,5 @@ __all__ = [
     "check_image_quality",
     "validate_person_name",
     "QualityAssessment",
+    "RecognitionInput",
 ]

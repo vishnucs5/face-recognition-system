@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
@@ -32,6 +32,7 @@ class IdentificationResult:
     status: str  # "MATCH", "UNKNOWN", or "NO_ENROLLED_FACES"
     threshold_used: float
     top_candidates: List[CandidateMatch] = field(default_factory=list)
+    embedding: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -44,6 +45,7 @@ class IdentificationOutput:
     results: List[IdentificationResult]
     annotated_image: np.ndarray  # BGR
     message: str
+    source: str = "upload"
 
 
 class FaceRecognitionService:
@@ -70,19 +72,28 @@ class FaceRecognitionService:
 
     def identify(
         self,
-        image: Union[str, Path, bytes, np.ndarray],
+        image: Union[str, Path, bytes, np.ndarray, Any],
         threshold: Optional[float] = None,
+        source: Optional[str] = None,
     ) -> IdentificationOutput:
         """Perform end-to-end multi-face detection, embedding extraction, matching, and unknown rejection.
 
         Args:
-            image: Query image source.
+            image: Query image source (path, bytes, ndarray, or RecognitionInput).
             threshold: Optional override for matching similarity threshold.
+            source: Acquisition source tag ('upload' or 'webcam').
 
         Returns:
             IdentificationOutput: Complete results breakdown and annotated visualization.
         """
-        img_bgr = load_image(image)
+        if hasattr(image, "image") and hasattr(image, "source"):
+            actual_image = image.image
+            source_tag = image.source
+        else:
+            actual_image = image
+            source_tag = source or "upload"
+
+        img_bgr = load_image(actual_image)
         thresh = threshold if threshold is not None else self.matcher.match_threshold
 
         # Step 1: Detect all faces in query image
@@ -96,6 +107,7 @@ class FaceRecognitionService:
                 results=[],
                 annotated_image=img_bgr.copy(),
                 message="No face detected in the image. Please provide an image containing a clear face.",
+                source=source_tag,
             )
 
         # Step 2: Fetch enrolled embeddings matrix from database
@@ -128,6 +140,7 @@ class FaceRecognitionService:
                 results=results,
                 annotated_image=annotated,
                 message="No enrolled identities are available in the database. Please enroll faces first.",
+                source=source_tag,
             )
 
         # Step 3: For each detected face, extract embedding and match
@@ -166,6 +179,7 @@ class FaceRecognitionService:
                     status=match_res.status,
                     threshold_used=thresh,
                     top_candidates=match_res.top_candidates,
+                    embedding=emb,
                 )
             )
 
@@ -185,4 +199,5 @@ class FaceRecognitionService:
             results=results,
             annotated_image=annotated,
             message=summary_msg,
+            source=source_tag,
         )
