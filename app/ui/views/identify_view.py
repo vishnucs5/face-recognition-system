@@ -1,4 +1,4 @@
-"""Identification view: Biometric workstation, camera monitor viewport, decision panels, and rejection trace."""
+"""Identification view: Biometric workstation, dual-mode optical acquisition (Upload & Webcam), decision panels, and rejection trace."""
 
 import time
 from pathlib import Path
@@ -11,17 +11,20 @@ from app.config import config
 from app.recognition.recognizer import FaceRecognitionService
 from app.ui.components import (
     render_analysis_trace,
+    render_camera_permission_notice,
     render_decision_panel,
     render_empty_state,
+    render_face_alignment_guide,
     render_hardware_header,
     render_similarity_gauge,
+    render_webcam_monitor_bezel,
 )
 from app.ui.theme import ICONS, THEME, render_html
 from app.utils.image_utils import bgr_to_rgb, crop_face, load_image
 
 
 def render_identify_view(rec_service: FaceRecognitionService):
-    """Render the physical identification workstation of the VISION-ID console."""
+    """Render the physical identification workstation with Upload and Live Webcam Scanner modes."""
     curr_thresh = float(st.session_state.get("threshold", config.match_threshold))
 
     # Instrument Header
@@ -33,22 +36,53 @@ def render_identify_view(rec_service: FaceRecognitionService):
         threshold=curr_thresh,
     )
 
-    # Maintain dynamic uploader version for clean resetting without widget errors
+    # Initialize session state tracking
+    if "identify_source_mode" not in st.session_state:
+        st.session_state["identify_source_mode"] = "upload"
     if "identify_uploader_ver" not in st.session_state:
         st.session_state["identify_uploader_ver"] = 0
+    if "identify_cam_ver" not in st.session_state:
+        st.session_state["identify_cam_ver"] = 0
 
-    uploader_key = f"identify_uploader_{st.session_state['identify_uploader_ver']}"
+    active_source = st.session_state["identify_source_mode"]
 
-    # Top Control Strip
-    toolbar_col1, toolbar_col2 = st.columns([3, 1], vertical_alignment="center")
-    with toolbar_col1:
-        query_file = st.file_uploader(
-            "Acquire Optical Frame",
-            type=["jpg", "jpeg", "png", "webp"],
-            key=uploader_key,
-            label_visibility="collapsed",
+    # =========================================================================
+    # TOP TOOLBAR: Mode Selector Rockers + Operating Threshold Slider
+    # =========================================================================
+    top_col1, top_col2 = st.columns([3, 2], vertical_alignment="center")
+
+    with top_col1:
+        st.markdown(
+            f"""
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 700; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+                <span>ACQUISITION SOURCE SELECTOR</span>
+                <span>CH: SCAN-INPUT</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-    with toolbar_col2:
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button(
+                "📁 [01] IMAGE UPLOAD SCAN",
+                type="primary" if active_source == "upload" else "secondary",
+                use_container_width=True,
+                key="btn_id_switch_upload",
+            ):
+                st.session_state["identify_source_mode"] = "upload"
+                st.rerun()
+
+        with col_btn2:
+            if st.button(
+                "📷 [02] WEBCAM LIVE SCANNER",
+                type="primary" if active_source == "webcam" else "secondary",
+                use_container_width=True,
+                key="btn_id_switch_webcam",
+            ):
+                st.session_state["identify_source_mode"] = "webcam"
+                st.rerun()
+
+    with top_col2:
         active_thresh = st.slider(
             "Operating Threshold (τ)",
             min_value=0.10,
@@ -62,16 +96,78 @@ def render_identify_view(rec_service: FaceRecognitionService):
             st.session_state["threshold"] = active_thresh
             curr_thresh = active_thresh
 
-    if query_file is None:
-        render_empty_state(
-            title="NO INPUT SIGNAL DETECTED",
-            description="Acquire or upload an optical image to engage the face detector and compare against the enrolled biometric gallery.",
-            icon_name="identify",
-        )
-        return
+    st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
 
-    # Execute Biometric Identification Pipeline
-    query_bytes = query_file.getvalue()
+    query_bytes = None
+    input_label = ""
+
+    # =========================================================================
+    # MODE 1: IMAGE FILE UPLOAD
+    # =========================================================================
+    if active_source == "upload":
+        uploader_key = f"identify_uploader_{st.session_state['identify_uploader_ver']}"
+        query_file = st.file_uploader(
+            "Acquire Optical Frame",
+            type=["jpg", "jpeg", "png", "webp"],
+            key=uploader_key,
+            help="Select an optical image to engage the face detector and gallery search.",
+        )
+        if query_file is not None:
+            query_bytes = query_file.getvalue()
+            input_label = f"FILE: {query_file.name}"
+        else:
+            render_empty_state(
+                title="NO INPUT SIGNAL DETECTED",
+                description="Acquire or upload an optical image to engage the face detector and compare against the enrolled biometric gallery.",
+                icon_name="identify",
+            )
+            return
+
+    # =========================================================================
+    # MODE 2: WEBCAM LIVE SCANNER
+    # =========================================================================
+    else:
+        # Privacy & Camera Permission Header
+        render_camera_permission_notice(is_denied=False)
+
+        # Biometric Webcam Monitor Bezel & Alignment Reticle
+        render_webcam_monitor_bezel(
+            channel_name="CH-01 // LIVE SCANNER VIEWPORT",
+            status_text="LIVE",
+            led_color="green",
+            device_label="INTEGRATED OPTICAL SENSOR",
+        )
+        render_face_alignment_guide()
+
+        cam_key = f"identify_cam_{st.session_state['identify_cam_ver']}"
+        cam_picture = st.camera_input(
+            "Live Identification Camera Input",
+            key=cam_key,
+            label_visibility="collapsed",
+            help="Align face in center viewfinder and click 'Take Photo' to initiate biometric matching.",
+        )
+
+        if cam_picture is not None:
+            query_bytes = cam_picture.getvalue()
+            input_label = "LIVE WEBCAM OPTICAL CAPTURE"
+        else:
+            render_html(
+                """
+                <div style="background: #080b11; border: 1px dashed #242d3e; border-radius: 8px; padding: 1.5rem 1rem; text-align: center; margin: 1rem auto; max-width: 600px;">
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem; font-weight: 700; color: #f59e0b; margin-bottom: 0.25rem;">
+                        ● LIVE WEBCAM SCANNER ENGAGED
+                    </div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-family: 'Inter', sans-serif;">
+                        Position your face inside the central reticle and click <strong>Take Photo</strong> on the camera display to run real-time biometric identification.
+                    </div>
+                </div>
+                """
+            )
+            return
+
+    # =========================================================================
+    # EXECUTE BIOMETRIC IDENTIFICATION PIPELINE
+    # =========================================================================
     t0 = time.perf_counter()
     with st.spinner("Executing face localization, 5-point alignment, and gallery comparison..."):
         output = rec_service.identify(query_bytes, threshold=curr_thresh)
@@ -87,7 +183,7 @@ def render_identify_view(rec_service: FaceRecognitionService):
             f"""
             <div class="camera-monitor-bezel">
                 <div class="camera-corner-tag">
-                    <span>[ SENSOR CH-01 // CAMERA MONITOR VIEW ]</span>
+                    <span>[ SENSOR CH-01 // {input_label} ]</span>
                     <span>DETECTED: {output.num_faces_detected} | MATCH: {output.num_matches} | UNKNOWN: {output.num_unknowns}</span>
                 </div>
             </div>
@@ -113,9 +209,14 @@ def render_identify_view(rec_service: FaceRecognitionService):
                     use_container_width=True,
                 )
         with act_col2:
-            if st.button("🔄 ACQUIRE ANOTHER FRAME", use_container_width=True):
-                st.session_state["identify_uploader_ver"] += 1
-                st.rerun()
+            if active_source == "upload":
+                if st.button("🔄 ACQUIRE ANOTHER FRAME", use_container_width=True):
+                    st.session_state["identify_uploader_ver"] += 1
+                    st.rerun()
+            else:
+                if st.button("📷 🔄 RETAKE / NEW SCAN", type="primary", use_container_width=True):
+                    st.session_state["identify_cam_ver"] += 1
+                    st.rerun()
 
     with col_decision:
         render_html(
