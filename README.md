@@ -114,9 +114,9 @@ flowchart TD
 | **Embedding Vector** | $128$-dimensional float32 | Strictly $L_2$-normalized ($\|e\|_2 = 1.0$) |
 | **Similarity Metric** | Cosine Similarity | $\cos(q, e) = \frac{q \cdot e}{\|q\| \|e\|} = q \cdot e$ |
 | **Database** | SQLite 3 | WAL mode, foreign keys with cascading delete |
-| **Web Interface** | Streamlit | Skeuomorphic hardware console, Home Portal, and dual-source enrollment (upload + webcam) |
+| **Web Interface** | Streamlit | Skeuomorphic hardware console, Home Portal, and dual-engine Webcam Identification (real-time stream + snapshot) and Enrollment |
 | **Evaluation** | scikit-learn, pandas, matplotlib | FAR, FRR, TAR, TRR, Accuracy, Threshold sweeps |
-| **Test Framework** | pytest | 23 unit, integration, and end-to-end test cases |
+| **Test Framework** | pytest | 24 unit, integration, and end-to-end test suites |
 
 ---
 
@@ -296,6 +296,29 @@ To prevent ambiguous identity binding:
    - Minimum face bounding box size: $\ge 60 \times 60$ pixels.
    - Blur metric: Laplacian variance $\ge 25.0$.
    - Exposure metric: Average grayscale brightness between $20.0$ and $245.0$.
+
+---
+
+## Webcam Workflows: Real-Time Identification & Enrollment
+
+The system provides first-class webcam integration across both primary operational modules:
+
+### 1. Identify Terminal (Webcam Identification)
+- **Engine A: Real-Time Continuous Video Stream (`~20 FPS`)**:
+  - Connects directly to hardware camera via OpenCV (`cv2.VideoCapture(0, cv2.CAP_DSHOW)`).
+  - Performs live YuNet localization, landmark alignment, and SFace cosine matching at ~20 FPS (~47 ms per frame).
+  - Displays dynamic HUD telemetry with green bounding boxes for recognized subjects (`NAME, sim: 0.85`) and red bounding boxes for imposters (`UNKNOWN, sim: 0.22`).
+- **Engine B: Browser High-Res Snapshot Scanner**:
+  - Uses browser-native WebRTC viewfinder with optical reticle guidelines.
+  - Freezes single frame on operator trigger, executing full forensic analysis trace, analog similarity needle gauge, and candidate rankings table.
+  - **Deliberate Reference Addition**: Users can optionally register high-confidence query captures as additional references with explicit button confirmation.
+- **Strict Query Mode Invariant**: Captures in query mode are strictly transient and never automatically modify or pollute the database.
+
+### 2. Personnel Registration (Webcam Enrollment)
+- Live optical alignment reticle with strict single-subject enforcement (rejects 0 or multiple faces).
+- Real-time Laplacian sharpness and bounding box resolution gating.
+- Saves reference photographs tagged with `source='webcam'` in SQLite.
+- Multi-reference registration: `[ 📷 + CAPTURE ANOTHER REFERENCE ]` maintains identity context across captures.
 
 ---
 
