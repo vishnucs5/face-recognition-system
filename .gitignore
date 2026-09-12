@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Coverage
+.pytest_cache/
+.pytest_tmp/
+.coverage
+htmlcov/
+
+# Local databases and models
+data/database/*.db
+data/database/*.db-journal
+!data/database/.gitkeep
+models/*.onnx
+!models/.gitkeep
+
+# Enrolled runtime photos
+data/enrolled/*
+!data/enrolled/.gitkeep
+
+# Environment & IDE
+.env
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Outputs & temporary files
+outputs/evaluation/*.png
+outputs/evaluation/*.csv
+outputs/evaluation/*.json
+outputs/examples/*
