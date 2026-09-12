@@ -115,3 +115,35 @@ def test_delete_person_cascades_embeddings(temp_db):
     temp_db.delete_person(pid)
     assert temp_db.count_identities() == 0
     assert temp_db.count_embeddings() == 0
+
+
+def test_enrollment_webcam_source_and_audit(temp_db):
+    """Verify enrollment with webcam source persists 'webcam' metadata in database."""
+    f1 = FaceDetection((10, 10, 100, 100), 0.95, np.zeros((5, 2)), np.zeros(15))
+    mock_det = MockDetector(detections_to_return=[f1])
+    service = EnrollmentService(
+        db_manager=temp_db, detector=mock_det, embedder=MockEmbedder()
+    )
+    img = np.ones((200, 200, 3), dtype=np.uint8) * 150
+
+    # 1. Enroll via webcam
+    res_cam = service.enroll(
+        "Diana", img, allow_save_image=False, skip_quality_check=True, source_type="webcam"
+    )
+    assert res_cam.success
+    assert res_cam.source_type == "webcam"
+
+    # 2. Add second reference via upload
+    res_up = service.enroll(
+        "Diana", img, allow_save_image=False, skip_quality_check=True, source_type="upload"
+    )
+    assert res_up.success
+    assert res_up.source_type == "upload"
+
+    # 3. Audit stored embeddings records
+    embeddings = temp_db.get_embeddings_for_person(res_cam.person_id)
+    assert len(embeddings) == 2
+    sources = [e["source"] for e in embeddings]
+    assert "webcam" in sources
+    assert "upload" in sources
+

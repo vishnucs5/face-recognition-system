@@ -644,6 +644,137 @@ def get_global_css() -> str:
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.8) !important;
         }}
 
+        /* =========================================================================
+           SKEUOMORPHIC WEBCAM & ENROLLMENT WORKBENCH STYLES
+           ========================================================================= */
+
+        /* Physical Source Toggle Rocker (Image Upload vs Webcam) */
+        .source-rocker-bay {{
+            background: #080b11;
+            border: 1px solid #1c2536;
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-bottom: 1.25rem;
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.85);
+        }}
+        .source-rocker-title {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+
+        /* Biometric Webcam Viewfinder Bezel */
+        .webcam-viewport-bezel {{
+            background: radial-gradient(ellipse at 50% 0%, #0d131f 0%, #05070c 100%);
+            border: 2px solid #222d40;
+            border-radius: 8px;
+            padding: 0.85rem;
+            position: relative;
+            box-shadow: 
+                inset 0 4px 20px rgba(0,0,0,0.95),
+                0 6px 20px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+            margin-bottom: 1rem;
+        }}
+        .webcam-telemetry-header {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            letter-spacing: 0.08em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #151d2c;
+            margin-bottom: 0.75rem;
+        }}
+
+        /* Biometric Face Alignment Guide Overlay Reticle */
+        .camera-reticle-overlay {{
+            position: relative;
+            width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+        }}
+        .face-target-guide {{
+            border: 2px dashed rgba(245, 158, 11, 0.65);
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2), inset 0 0 15px rgba(245, 158, 11, 0.1);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px;
+            height: 280px;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.5rem;
+        }}
+        .face-target-text {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.625rem;
+            font-weight: 700;
+            color: #f59e0b;
+            text-align: center;
+            background: rgba(8, 11, 17, 0.75);
+            border-radius: 3px;
+            padding: 2px 6px;
+            letter-spacing: 0.08em;
+            align-self: center;
+        }}
+
+        /* Streamlit Camera Input Hardware Bezel Integration */
+        [data-testid="stCameraInput"] {{
+            background-color: #06080e !important;
+            border: 1px solid #1b2332 !important;
+            border-radius: 6px !important;
+            padding: 0.75rem !important;
+            box-shadow: inset 0 3px 10px rgba(0,0,0,0.85) !important;
+        }}
+        [data-testid="stCameraInput"] video {{
+            border-radius: 6px !important;
+            border: 1px solid #2a364a !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+        }}
+        [data-testid="stCameraInput"] button {{
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.75rem !important;
+            letter-spacing: 0.05em !important;
+            text-transform: uppercase !important;
+        }}
+
+        /* Guidance Checklist Pill */
+        .camera-guidance-pill {{
+            background: #090c13;
+            border: 1px solid #1c2434;
+            border-radius: 4px;
+            padding: 0.4rem 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+        .camera-guidance-pill.valid {{
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }}
+        .camera-guidance-pill.warning {{
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.3);
+        }}
+
         /* Responsive overrides */
         @media (max-width: 1024px) {{
             .block-container {{

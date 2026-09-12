@@ -44,6 +44,7 @@ class DatabaseManager:
                     person_id INTEGER NOT NULL,
                     embedding BLOB NOT NULL,
                     source_image_name TEXT,
+                    source TEXT DEFAULT 'upload',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE
                 );
@@ -52,6 +53,12 @@ class DatabaseManager:
                 ON face_embeddings(person_id);
                 """
             )
+            # Automatic schema migration for existing databases without 'source' column
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(face_embeddings);")
+            columns = [col["name"] for col in cursor.fetchall()]
+            if "source" not in columns:
+                conn.execute("ALTER TABLE face_embeddings ADD COLUMN source TEXT DEFAULT 'upload';")
             conn.commit()
 
     def _invalidate_cache(self) -> None:
@@ -96,6 +103,7 @@ class DatabaseManager:
         person_id: int,
         embedding: np.ndarray,
         source_image_name: Optional[str] = None,
+        source: Optional[str] = "upload",
     ) -> int:
         """Save a face embedding vector for a given person.
 
@@ -103,6 +111,7 @@ class DatabaseManager:
             person_id: ID of the enrolled person.
             embedding: 1D or 2D numpy array of shape (128,).
             source_image_name: Optional original file name.
+            source: Source of enrollment ('upload' or 'webcam').
 
         Returns:
             int: Inserted embedding ID.
@@ -116,14 +125,36 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO face_embeddings (person_id, embedding, source_image_name)
-                VALUES (?, ?, ?)
+                INSERT INTO face_embeddings (person_id, embedding, source_image_name, source)
+                VALUES (?, ?, ?, ?)
                 """,
-                (person_id, blob, source_image_name),
+                (person_id, blob, source_image_name, source or "upload"),
             )
             conn.commit()
             self._invalidate_cache()
             return int(cursor.lastrowid)
+
+    def get_embeddings_for_person(self, person_id: int) -> List[dict]:
+        """Retrieve all embedding metadata records for a given person.
+
+        Args:
+            person_id: ID of the enrolled person.
+
+        Returns:
+            List of dicts with id, person_id, source_image_name, source, created_at.
+        """
+        with self._lock, self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, person_id, source_image_name, source, created_at
+                FROM face_embeddings
+                WHERE person_id = ?
+                ORDER BY id ASC
+                """,
+                (person_id,),
+            )
+            return [dict(row) for row in cursor.fetchall()]
 
     def get_all_embeddings_matrix(
         self,

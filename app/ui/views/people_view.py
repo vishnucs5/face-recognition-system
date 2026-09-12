@@ -136,6 +136,10 @@ def render_people_view(db_mgr: DatabaseManager):
             emb_count = selected_person["embedding_count"]
             created = selected_person["created_at"]
 
+            embeddings = db_mgr.get_embeddings_for_person(p_id)
+            cam_count = sum(1 for e in embeddings if e.get("source") == "webcam")
+            up_count = sum(1 for e in embeddings if e.get("source") != "webcam")
+
             render_html(
                 f"""
                 <div class="panel-plate" style="margin-bottom: 1rem;">
@@ -152,7 +156,7 @@ def render_people_view(db_mgr: DatabaseManager):
                     </div>
                     <div class="glass-display" style="padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #94a3b8; line-height: 1.8;">
                         <div>• ENROLLED: <strong style="color: #f1f5f9;">{created}</strong></div>
-                        <div>• VECTORS: <strong style="color: #f59e0b;">{emb_count:02d} REFERENCE EMBEDDINGS</strong></div>
+                        <div>• VECTORS: <strong style="color: #f59e0b;">{emb_count:02d} REFERENCE EMBEDDINGS</strong> (Webcam: {cam_count} | Upload: {up_count})</div>
                         <div>• DIMENSION: <strong style="color: #10b981;">128-D L2 NORMALIZED</strong></div>
                         <div>• POLICY: <strong style="color: #38bdf8;">MAX COSINE SIMILARITY</strong></div>
                     </div>
@@ -160,18 +164,37 @@ def render_people_view(db_mgr: DatabaseManager):
                 """
             )
 
-            # Audit Reference Photos
+            # Audit Reference Embeddings & Photos
             render_html(
                 """
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.5rem;">
-                    REFERENCE IMAGING CASINGS
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                    <span>REFERENCE EMBEDDINGS AUDIT</span>
+                    <span class="hw-led green"></span>
                 </div>
                 """
             )
+
+            if embeddings:
+                emb_rows = []
+                for e in embeddings:
+                    src_tag = "WEBCAM" if e.get("source") == "webcam" else "UPLOAD"
+                    src_color = THEME["accent_amber"] if src_tag == "WEBCAM" else THEME["status_green"]
+                    img_label = e.get("source_image_name") or f"vec_{e['id']}"
+                    emb_rows.append(
+                        f"""
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:#080b11; border:1px solid #1c2436; border-radius:4px; padding:0.35rem 0.6rem; margin-bottom:0.3rem; font-family:'JetBrains Mono', monospace; font-size:0.6875rem;">
+                            <span style="color:#cbd5e1;">#{e['id']:02d} &bull; {img_label}</span>
+                            <span style="color:{src_color}; font-weight:700;">[{src_tag}]</span>
+                        </div>
+                        """
+                    )
+                render_html("".join(emb_rows))
+
             ref_folder = config.enrolled_dir / p_name
             ref_images = list(ref_folder.glob("*.*")) if ref_folder.exists() else []
 
             if ref_images:
+                st.markdown("<div style='height: 0.35rem;'></div>", unsafe_allow_html=True)
                 num_to_show = min(3, len(ref_images))
                 img_cols = st.columns(num_to_show)
                 for idx in range(num_to_show):
@@ -179,7 +202,7 @@ def render_people_view(db_mgr: DatabaseManager):
                     with img_cols[idx]:
                         try:
                             im = Image.open(img_path)
-                            st.image(im, use_container_width=True, caption=f"Casing #{idx+1:02d}")
+                            st.image(im, use_container_width=True, caption=img_path.name[:16])
                         except Exception:
                             pass
             else:

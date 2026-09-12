@@ -363,3 +363,143 @@ def bgr_to_base64_img(img_bgr: np.ndarray) -> str:
         return ""
     b64_str = base64.b64encode(buffer).decode("utf-8")
     return f"data:image/jpeg;base64,{b64_str}"
+
+
+def render_enrollment_source_selector(active_source: str) -> None:
+    """Render physical console enrollment source rocker switch plate."""
+    is_upload = active_source == "upload"
+    is_webcam = active_source == "webcam"
+
+    upload_led = "green" if is_upload else "off"
+    webcam_led = "amber" if is_webcam else "off"
+
+    html = f"""
+    <div class="source-rocker-bay">
+        <div class="source-rocker-title">
+            <span>ENROLLMENT SOURCE SELECTOR</span>
+            <span>CH: OPTICAL-INPUT</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div style="background: {'linear-gradient(180deg, #101520 0%, #0a0d14 100%)' if is_upload else 'linear-gradient(180deg, #1f2737 0%, #151a24 100%)'}; border: 1px solid {'#10b981' if is_upload else '#283345'}; border-radius: 6px; padding: 0.5rem 0.75rem; display: flex; align-items: center; justify-content: space-between; box-shadow: {'inset 0 2px 6px rgba(0,0,0,0.85), 0 0 10px rgba(16, 185, 129, 0.2)' if is_upload else '0 2px 4px rgba(0,0,0,0.4)'};">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: {'#10b981' if is_upload else '#94a3b8'};">
+                    [01] IMAGE UPLOAD
+                </span>
+                <span class="hw-led {upload_led}"></span>
+            </div>
+            <div style="background: {'linear-gradient(180deg, #101520 0%, #0a0d14 100%)' if is_webcam else 'linear-gradient(180deg, #1f2737 0%, #151a24 100%)'}; border: 1px solid {'#f59e0b' if is_webcam else '#283345'}; border-radius: 6px; padding: 0.5rem 0.75rem; display: flex; align-items: center; justify-content: space-between; box-shadow: {'inset 0 2px 6px rgba(0,0,0,0.85), 0 0 10px rgba(245, 158, 11, 0.2)' if is_webcam else '0 2px 4px rgba(0,0,0,0.4)'};">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: {'#f59e0b' if is_webcam else '#94a3b8'};">
+                    [02] WEBCAM CONSOLE
+                </span>
+                <span class="hw-led {webcam_led}"></span>
+            </div>
+        </div>
+    </div>
+    """
+    render_html(html)
+
+
+def render_webcam_monitor_bezel(
+    channel_name: str = "PRIMARY OPTICAL FEED",
+    status_text: str = "LIVE",
+    led_color: str = "green",
+    device_label: str = "DEFAULT WEBCAM",
+) -> None:
+    """Render physical camera monitor bezel header with status indicator and telemetry tags."""
+    html = f"""
+    <div class="webcam-telemetry-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="hw-screw"></div>
+            <span>CAMERA INPUT</span>
+            <span class="hw-led {led_color}"></span>
+            <strong style="color: {'#10b981' if led_color == 'green' else '#f59e0b'};">{status_text.upper()}</strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #64748b;">FEED:</span>
+            <span style="color: #cbd5e1;">{channel_name}</span>
+            <span style="color: #475569;">|</span>
+            <span style="color: #64748b;">DEV:</span>
+            <span style="color: #f59e0b;">{device_label}</span>
+            <div class="hw-screw"></div>
+        </div>
+    </div>
+    """
+    render_html(html)
+
+
+def render_face_alignment_guide() -> None:
+    """Render biometric optical reticle alignment guidelines."""
+    html = f"""
+    <div class="camera-guidance-pill valid" style="margin-bottom: 0.5rem;">
+        <span class="hw-led amber"></span>
+        <span>OPTICAL RETICLE: Position frontal face within center viewport (yaw &amp; pitch &lt; 30°)</span>
+    </div>
+    """
+    render_html(html)
+
+
+def render_camera_permission_notice(is_denied: bool = False) -> None:
+    """Render camera permission guidance or denied warning plate."""
+    if is_denied:
+        html = f"""
+        <div class="panel-plate" style="border-left: 4px solid #ef4444; margin-bottom: 1rem; padding: 1rem 1.25rem;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem; font-weight: 700; color: #ef4444; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span class="hw-led red"></span> CAMERA ACCESS DENIED OR UNAVAILABLE
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8; line-height: 1.5; font-family: 'Inter', sans-serif;">
+                Browser camera permission is required for live optical capture. Check your browser permissions bar or switch to <strong>Image Upload</strong> mode to enroll from local photo files.
+            </div>
+        </div>
+        """
+    else:
+        html = f"""
+        <div style="background: #080b11; border: 1px solid #1c2536; border-radius: 6px; padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #94a3b8;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="hw-led blue"></span>
+                <span>CAMERA ACCESS: Browser permission engaged for live biometric capture</span>
+            </div>
+            <span style="color: #10b981; font-weight: 700;">● PRIVACY ENFORCED</span>
+        </div>
+        """
+    render_html(html)
+
+
+def render_captured_frame_review(
+    num_faces: int,
+    is_valid_single: bool,
+    quality_score: Optional[float] = None,
+    laplacian_var: Optional[float] = None,
+    resolution_str: Optional[str] = None,
+) -> None:
+    """Render captured frame review status panel."""
+    if num_faces == 1 and is_valid_single:
+        status_color = "#10b981"
+        led_color = "green"
+        headline = "SINGLE SUBJECT ACQUIRED — READY FOR BIOMETRIC ENROLLMENT"
+    elif num_faces == 0:
+        status_color = "#f59e0b"
+        led_color = "amber"
+        headline = "NO FACE DETECTED — RE-ALIGN SUBJECT AND RETAKE"
+    else:
+        status_color = "#ef4444"
+        led_color = "red"
+        headline = f"POLICY VIOLATION: {num_faces} FACES DETECTED (EXACTLY 1 REQUIRED)"
+
+    qual_items = []
+    if resolution_str:
+        qual_items.append(f"RES: <strong style='color:#f8fafc;'>{resolution_str}</strong>")
+    if laplacian_var is not None:
+        qual_items.append(f"LAPLACIAN SHARPNESS: <strong style='color:{'#10b981' if laplacian_var >= 25.0 else '#ef4444'};'>{laplacian_var:.1f}</strong>")
+
+    qual_html = " | ".join(qual_items) if qual_items else ""
+
+    html = f"""
+    <div style="background: #080b11; border: 1px solid #1c2536; border-left: 4px solid {status_color}; border-radius: 6px; padding: 0.75rem 1rem; margin-top: 0.75rem; margin-bottom: 0.75rem;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: {status_color}; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <span class="hw-led {led_color}"></span> {headline}
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; color: #64748b;">
+            {qual_html}
+        </div>
+    </div>
+    """
+    render_html(html)

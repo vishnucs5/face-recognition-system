@@ -36,6 +36,7 @@ class EnrollmentResult:
     detection: Optional[FaceDetection]
     saved_image_path: Optional[str]
     message: str
+    source_type: str = "upload"
 
 
 class EnrollmentService:
@@ -57,6 +58,7 @@ class EnrollmentService:
         image: Union[str, Path, bytes, np.ndarray],
         allow_save_image: bool = True,
         skip_quality_check: bool = False,
+        source_type: str = "upload",
     ) -> EnrollmentResult:
         """Enroll a person's face into the local biometric database.
 
@@ -65,10 +67,13 @@ class EnrollmentService:
             image: Image containing exactly one face.
             allow_save_image: Whether to store reference image in data/enrolled/<name>/.
             skip_quality_check: Bypass blur/size quality checks if explicitly requested.
+            source_type: Source of optical acquisition ('upload' or 'webcam').
 
         Returns:
             EnrollmentResult: Status, IDs, quality score, and informative user message.
         """
+        clean_source = "webcam" if str(source_type).lower() == "webcam" else "upload"
+
         # 1. Validate identity name
         try:
             clean_name = validate_person_name(name)
@@ -84,6 +89,7 @@ class EnrollmentService:
                 detection=None,
                 saved_image_path=None,
                 message=f"Invalid name: {e}",
+                source_type=clean_source,
             )
 
         # 2. Load and decode image
@@ -101,6 +107,7 @@ class EnrollmentService:
                 detection=None,
                 saved_image_path=None,
                 message=f"Unable to read image: {e}",
+                source_type=clean_source,
             )
 
         # 3. Detect faces and enforce Single-Face Policy
@@ -117,7 +124,8 @@ class EnrollmentService:
                 quality=None,
                 detection=None,
                 saved_image_path=None,
-                message="No face detected in the image. Please provide an image containing a clear face.",
+                message="No face detected in the optical frame. Position face inside camera bounds and try again.",
+                source_type=clean_source,
             )
 
         if len(detections) > 1:
@@ -136,7 +144,8 @@ class EnrollmentService:
                 quality=None,
                 detection=None,
                 saved_image_path=None,
-                message=f"Multiple faces ({len(detections)}) detected. Please provide an image containing exactly one person.",
+                message=f"Multiple faces ({len(detections)}) detected. Enrollment requires exactly one person in frame.",
+                source_type=clean_source,
             )
 
         target_detection = detections[0]
@@ -163,6 +172,7 @@ class EnrollmentService:
                 detection=target_detection,
                 saved_image_path=None,
                 message=f"Face detected, but image quality is insufficient: {issue_str}",
+                source_type=clean_source,
             )
 
         # 5. Extract 128-d L2-normalized embedding
@@ -181,6 +191,7 @@ class EnrollmentService:
                 detection=target_detection,
                 saved_image_path=None,
                 message=f"Biometric embedding generation failed: {e}",
+                source_type=clean_source,
             )
 
         # 6. Check if person already exists (Multiple Reference Embeddings support)
@@ -195,7 +206,7 @@ class EnrollmentService:
             person_folder = config.enrolled_dir / clean_name
             person_folder.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            file_name = f"ref_{timestamp}.jpg"
+            file_name = f"{clean_source}_{timestamp}.jpg"
             full_path = person_folder / file_name
             cv2.imwrite(str(full_path), img_bgr)
             saved_img_path = str(full_path)
@@ -206,6 +217,7 @@ class EnrollmentService:
             person_id=person_id,
             embedding=embedding,
             source_image_name=source_name,
+            source=clean_source,
         )
 
         # Count total embeddings for this person
@@ -231,4 +243,5 @@ class EnrollmentService:
             detection=target_detection,
             saved_image_path=saved_img_path,
             message=msg,
+            source_type=clean_source,
         )
