@@ -53,3 +53,7 @@ outputs/evaluation/*.png
 outputs/evaluation/*.csv
 outputs/evaluation/*.json
 outputs/examples/*
+
+# AI Colorization
+aicolorization/
+
