@@ -57,3 +57,17 @@ outputs/examples/*
 # AI Colorization
 aicolorization/
 
+# Local engines, weights & test data
+ComfyUI/
+.superpowers/
+superpowers/
+datasets/
+test_dataset/
+*.safetensors
+*.png
+*.jpg
+*.jpeg
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
