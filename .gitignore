@@ -71,3 +71,5 @@ test_dataset/
 *.db-journal
 *.db-shm
 *.db-wal
+forge-studio/
+forge-studio-backup/
